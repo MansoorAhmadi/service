@@ -18,7 +18,7 @@ From `pom.xml`, and why each one is included:
 
 - **`org.postgresql:postgresql`** — the JDBC driver that lets the application talk to the PostgreSQL database at runtime. Required because Spring Data JDBC needs a concrete driver to open connections to `jdbc:postgresql://localhost/database`.
 
-- **`spring-boot-starter-actuator`** — exposes production-readiness endpoints (health, info, metrics, etc.) under `/actuator`, useful for checking the app is up and inspecting its internal state without writing custom code.
+- **`spring-boot-starter-actuator`** — ``exposes production-readiness endpoints (health, info, metrics, etc.) under `/actuator`, useful for checking the app is up and inspecting its internal state without writing custom code.``
 
 - **`spring-boot-devtools`** *(dev tool, runtime/optional)* — enables automatic restarts and live reload during development, so code changes are picked up without manually stopping/starting the app.
 
@@ -94,89 +94,131 @@ spring.aot.repositories.enabled=false
 
 The service app starts on `http://localhost:8080`.
 
-Ensure Java 25 is provided by Homebrew (personally, I prefer homebrew)
-```
-    brew search graalvm
-```
+## Java version management (SDKMAN)
 
-And
-```
-brew search --cask graalvm
-```
+This project no longer relies on Homebrew-installed JDKs or manual `JAVA_HOME` shell functions to switch Java versions. **SDKMAN is the only tool used to install and switch Java versions on this machine** — Homebrew-installed JDKs (`openjdk@17`, the standalone `graalvm-25.jdk`) were removed beforehand so there is no ambiguity about which `java` is picked up.
 
-INSTALL graalvm-jdk@25
-```
-brew install --cask graalvm-jdk@25
-```
+SDKMAN is a command-line tool that installs, manages, and switches between multiple versions of SDKs (Java, Maven, Gradle, etc.) — see the [official usage docs](https://sdkman.io/usage/) for the full reference.
 
-ENSURE Java versions
-```
-/usr/libexec/java_home -V
-    Matching Java Virtual Machines (2):
-    25.0.4 (arm64) "Oracle Corporation" - "Oracle GraalVM 25.0.4+7.1" /Library/Java/JavaVirtualMachines/graalvm-25.jdk/Contents/Home
-    17.0.18 (arm64) "Homebrew" - "OpenJDK 17.0.18" /opt/homebrew/Cellar/openjdk@17/17.0.18/libexec/openjdk.jdk/Contents/Home
+### Necessary commands
 
-```
-And
-```
-brew list --cask | grep graal
-```
+| Command | Description |
+|---|---|
+| `sdk version` | Show the installed SDKMAN script/native version. |
+| `sdk list` | List every SDK (Java, Maven, Gradle, …) that SDKMAN can manage. |
+| `sdk list java` | List installable Java vendors/versions for this platform, flagging which are installed (`*`) or in use (`>`). |
+| `sdk install java <identifier>` | Download and install a specific Java build (e.g. `17.0.12-graal`). |
+| `sdk uninstall java <identifier>` | Remove an installed Java version. |
+| `sdk use java <identifier>` | Switch Java version for the **current shell only** (temporary). |
+| `sdk default java <identifier>` | Set a Java version as the **global default** for every new shell. |
+| `sdk current java` | Show which Java version is currently active as the default. |
+| `sdk env init` | Create a `.sdkmanrc` file in the current directory, pinning the Java version this project should use. |
+| `sdk env` | Apply the versions listed in the current directory's `.sdkmanrc` to the shell. |
+| `sdk env clear` | Reset the shell back to the versions used before `.sdkmanrc` was applied. |
+| `sdk env install` | Install every SDK version listed in `.sdkmanrc` that isn't already installed. |
+| `sdk config` | Open SDKMAN's config file, e.g. to toggle `sdkman_auto_env` (see below). |
 
-> **Note:** the project targets Java 25. If multiple JDKs are installed locally, switch to a Java 25/GraalVM build before running Maven — e.g. via a shell function that sets `JAVA_HOME` (see `~/.zshrc`):
- ```
- nano ~/.zshrc
-```
+### Enable automatic switching first (`sdkman_auto_env`)
 
-````
- java17() {
-    export JAVA_HOME=$(/usr/libexec/java_home -v 17)
-    export PATH="$JAVA_HOME/bin:$BASE_PATH"
-    echo "Java 17 activated"
-    java --version
- }
- 
- java25() {
-   export JAVA_HOME=$(/usr/libexec/java_home -v 25)
-   export PATH="$JAVA_HOME/bin:$BASE_PATH"
-   echo "Java 25 / GraalVM activated"
-   java --version
- }
- ````
- 
-```
-# SAVE THE MODIFICATION
- 1. Ctrl + O
- 2. Press Enter
- 3. Ctrl + X
-```
+Set `sdkman_auto_env=true` via `sdk config` **before** pinning any project directory below. This is what makes `cd`-ing into a directory with a `.sdkmanrc` automatically activate the Java version listed in it, instead of requiring a manual `sdk env` on every visit:
 
 ```
-# SOURCE THE MODIFICATION
- source ~/.zshrc
+$ sdk config
+...
+4 sdkman_auto_env=true
+...
+```
+
+> Strictly speaking, `sdk use java <identifier>` and `sdk env init` themselves work regardless of this setting — `sdkman_auto_env` only controls whether `cd`-ing into a directory *automatically* re-runs `sdk env` for you. But since the whole point of pinning each project below is switching Java by directory alone (no manual step per `cd`), enable it first.
+
+### Installing and setting a Java version
+
+```
+$ sdk install java 17.0.12-graal
+
+Downloading: java 17.0.12-graal
+
+In progress...
+################################################################################################################################ 100.0%
+
+Repackaging Java 17.0.12-graal...
+
+Done repackaging...
+Cleaning up residual files...
+
+Installing: java 17.0.12-graal
+Done installing!
+
+Do you want java 17.0.12-graal to be set as default? (Y/n): y
+
+Setting java 17.0.12-graal as default.
 ```
 
 ```
-# CHOOSE DIFFERENT JAVA VERSIONS BASED ON THE CORRESPONDING PROJECT
- export PATH="$JAVA_HOME/bin:$PATH"
- source ~/.zshrc
- java25
+$ java -version
+java version "17.0.12" 2024-07-16 LTS
+Java(TM) SE Runtime Environment Oracle GraalVM 17.0.12+8.1 (build 17.0.12+8-LTS-jvmci-23.0-b41)
+Java HotSpot(TM) 64-Bit Server VM Oracle GraalVM 17.0.12+8.1 (build 17.0.12+8-LTS-jvmci-23.0-b41, mixed mode, sharing)
 ```
 
-Show GraalVM Native Image version
+### Per-project Java version with `.sdkmanrc`
+
+This project (`~/java_course/service`) targets **Java 25**, so a GraalVM 25 build is installed and pinned locally instead of set as the global default:
+
 ```
-native-image --version
+$ cd ~/java_course/service
+$ sdk use java 25.3.4+1.r25-graal
+Using java version 25.3.4+1.r25-graal in this shell.
+
+$ sdk env init
+.sdkmanrc created.
+
+$ cat .sdkmanrc
+# Enable auto-env through the sdkman_auto_env config
+# Add key=value pairs of SDKs to use below
+java=25.3.4+1.r25-graal
 ```
 
-Existing setup
 ```
-Homebrew
-│
-├── OpenJDK 17
-│
-└── GraalVM JDK 25
+$ sdk current java
+Current default java version 25.3.4+1.r25-graal
 ```
 
-> `java25` here is a custom shell function (defined in `~/.zshrc`) that points `JAVA_HOME`/`PATH` at the installed GraalVM JDK 25 and prints its version — it must be active before running the `native:compile` build below, since only a GraalVM JDK ships the `native-image` tool.
+### Other projects pinned to Java 17
+
+Two other local projects are pinned to a different Java version (`17.0.12-graal`) the same way — `sdk use` then `sdk env init` in each project's own directory:
+
+```
+$ cd ~/delta/delta-gss/delta-gss-distribution
+$ sdk use java 17.0.12-graal
+Using java version 17.0.12-graal in this shell.
+
+$ sdk env init
+.sdkmanrc created.
+
+$ cat .sdkmanrc
+# Enable auto-env through the sdkman_auto_env config
+# Add key=value pairs of SDKs to use below
+java=17.0.12-graal
+```
+
+```
+$ cd ~/delta/SesamEO/sesame-distribution
+$ sdk use java 17.0.12-graal
+Using java version 17.0.12-graal in this shell.
+
+$ sdk env init
+.sdkmanrc created.
+
+$ cat .sdkmanrc
+# Enable auto-env through the sdkman_auto_env config
+# Add key=value pairs of SDKs to use below
+java=17.0.12-graal
+```
+
+> `.sdkmanrc` only records the version — it doesn't switch anything by itself. With `sdkman_auto_env` enabled (above), it's picked up automatically on `cd`; otherwise it needs a manual `sdk env`. To stop pinning a project, delete the file: `rm .sdkmanrc`.
+
+With all three `.sdkmanrc` files in place and `sdkman_auto_env=true`, `cd`-ing between `~/java_course/service` (Java 25), `~/delta/delta-gss/delta-gss-distribution` (Java 17), and `~/delta/SesamEO/sesame-distribution` (Java 17) switches `java`/`JAVA_HOME` automatically, with no manual step per directory.
 
 ## GraalVM native image
 
