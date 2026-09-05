@@ -26,6 +26,8 @@ From `pom.xml`, and why each one is included:
 
 - **`org.graalvm.buildtools:native-maven-plugin`** *(build plugin, GraalVM Native Support)* — allows compiling the application into a native executable via GraalVM instead of running on a standard JVM, for faster startup and lower memory footprint. Used together with the GraalVM JDK (Java 25 build) rather than a plain OpenJDK.
 
+- **`io.spring.javaformat:spring-javaformat-maven-plugin`** *(build plugin)* — enforces Spring's own code style automatically at build time, failing `mvn package` on formatting violations.
+
 Test-scoped dependencies (`spring-boot-starter-webmvc-test`, `spring-boot-starter-data-jdbc-test`, `spring-boot-starter-actuator-test`) mirror the runtime starters above and provide the corresponding testing utilities (e.g. `MockMvc`, embedded/test database support).
 
 ## Project structure
@@ -93,6 +95,54 @@ spring.aot.repositories.enabled=false
    ```
 
 The service app starts on `http://localhost:8080`.
+
+## Code formatting (Spring Java Format)
+
+`spring-javaformat-maven-plugin` is bound to the `validate` phase, so `mvn package` fails the build if any source file violates Spring's code style — before compilation even starts.
+
+Failing example — formatting violations found:
+
+```
+$ mvn package
+
+[INFO] --- spring-javaformat:0.0.48:validate (default) @ service ---
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal io.spring.javaformat:spring-javaformat-maven-plugin:0.0.48:validate (default) on project service: Formatting violations found in the following files:
+[ERROR]  * /Users/user/java_course/service/src/main/java/com/example/repository/CustomerRepository.java
+[ERROR]  * /Users/user/java_course/service/src/main/java/com/example/ServiceApplication.java
+[ERROR]  * /Users/user/java_course/service/src/main/java/com/example/model/Customer.java
+[ERROR] 
+[ERROR] Run `spring-javaformat:apply` to fix.
+```
+
+Fix it with `spring-javaformat:apply`, which rewrites the offending files in place:
+
+```
+$ mvn spring-javaformat:apply
+
+[INFO] --- spring-javaformat:0.0.48:apply (default-cli) @ service ---
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+```
+
+Passing example — `mvn package` after `apply`:
+
+```
+$ mvn package
+
+[INFO] --- spring-javaformat:0.0.48:validate (default) @ service ---
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ service ---
+...
+[INFO] --- jar:3.5.1:jar (default-jar) @ service ---
+[INFO] --- spring-boot:4.1.1:repackage (repackage) @ service ---
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+```
 
 ## Java version management (SDKMAN)
 

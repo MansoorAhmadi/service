@@ -79,6 +79,23 @@
 
 	<build>
 		<plugins>
+
+            <plugin>
+                <groupId>io.spring.javaformat</groupId>
+                <artifactId>spring-javaformat-maven-plugin</artifactId>
+                <version>0.0.48</version>
+
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <inherited>true</inherited>
+                        <goals>
+                            <goal>validate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
 			<plugin>
 				<groupId>org.graalvm.buildtools</groupId>
 				<artifactId>native-maven-plugin</artifactId>
@@ -87,6 +104,7 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+
 		</plugins>
 	</build>
 

@@ -6,23 +6,25 @@ import org.springframework.data.relational.core.mapping.Table;
 @Table("customer")
 public class Customer {
 
-    @Id
-    int id;
-    String name;
+	@Id
+	int id;
 
-    public int getId() {
-        return id;
-    }
+	String name;
 
-    public void setId(int id) {
-        this.id = id;
-    }
+	public int getId() {
+		return id;
+	}
 
-    public String getName() {
-        return name;
-    }
+	public void setId(int id) {
+		this.id = id;
+	}
 
-    public void setName(String name) {
-        this.name = name;
-    }
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
 }
