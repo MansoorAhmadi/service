@@ -335,6 +335,49 @@ SUMMARY
 2. java -jar service.jar    → JVM
 ```
 
+## Docker image (Cloud Native Buildpacks)
+
+[Buildpacks](https://buildpacks.io/) are a tool that turns application source code into a runnable container image, without having to write a `Dockerfile` by hand. Spring Boot's Maven plugin wires this in via the `spring-boot:build-image` goal.
+
+### Build the image
+
+```bash
+./mvnw spring-boot:build-image
+```
+
+```
+     ↓
+  DETECT (pom.xml -> Java application)
+     ↓
+  BUILD (Java application + Java runtime + dependencies)
+     ↓
+  EXPORT (service:0.0.1-SNAPSHOT)
+     ↓
+service:0.0.1-SNAPSHOT
+```
+
+### Run the container against PostgreSQL on the host
+
+The database still runs on the host machine (started via `docker compose up -d`), not inside this container, so the container reaches it through the Docker-provided host alias `host.docker.internal` instead of `localhost`, on port 5432, database `database`:
+
+```bash
+docker run -p 8080:8080 \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/database \
+  -e SPRING_DATASOURCE_USERNAME=user \
+  -e SPRING_DATASOURCE_PASSWORD=secret \
+  docker.io/library/service:0.0.1-SNAPSHOT
+```
+
+> The datasource URL/credentials are passed as environment variables at `docker run` time, overriding what `application.properties` sets — `localhost` inside the container would refer to the container itself, not the host machine.
+
+### Build a native image inside the container
+
+Combine the buildpacks build with the `native` Maven profile (see [GraalVM native image](#graalvm-native-image) above) to produce a container image built around a GraalVM native executable containing its own JRE, runnable directly on the host — no separate JVM install needed:
+
+```bash
+./mvnw -Pnative spring-boot:build-image
+```
+
 ## Endpoints
 
 ### `GET /hello`
