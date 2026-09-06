@@ -77,6 +77,90 @@ spring.aot.repositories.enabled=false
 
 `spring.aot.repositories.enabled=false` disables Spring Data JDBC's ahead-of-time repository generation — see [GraalVM native image](#graalvm-native-image) below for why that's needed here.
 
+## Auto-starting the database (`spring-boot-docker-compose`)
+
+`spring-boot-docker-compose` is a Spring Boot feature that can automatically start the Docker Compose services (from the root of the repository) when you run the Spring Boot application.
+
+> This project keeps the dependency **commented out** in `pom.xml` (see [Dependencies](#dependencies) above) since Postgres is started explicitly with `docker compose up -d`; the setup below is what enabling it looks like.
+
+Example layout:
+
+```
+service/
+├── src/
+├── pom.xml
+└── compose.yaml
+```
+
+`compose.yaml`:
+
+```yaml
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: database
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+```
+
+Dependency:
+
+```xml
+<dependency>
+	<groupId>org.springframework.boot</groupId>
+	<artifactId>spring-boot-docker-compose</artifactId>
+</dependency>
+```
+
+`application.properties`:
+
+```properties
+spring.application.name=service
+
+# Start Docker Compose services when the application starts, but don't stop them when it stops
+spring.docker.compose.lifecycle-management=start_only
+```
+
+> **Note:** once the dependency is present and `compose.yaml` already defines the credentials, Spring Boot reads the connection details straight from the Compose service — these lines become redundant and should **not** be written in `application.properties`:
+> ```properties
+> ✅ spring.application.name=service
+> ✅ spring.docker.compose.lifecycle-management=start_only
+> 
+> ❌ spring.datasource.url=jdbc:postgresql://localhost/database
+> ❌ spring.datasource.username=user
+> ❌ spring.datasource.password=secret
+> ```
+
+Flow:
+
+```
+./mvnw spring-boot:run
+        │
+        ▼
+Spring Boot
+        │
+        ├── detects compose.yaml
+        │
+        ▼
+Docker Compose
+        │
+        ▼
+PostgreSQL container starts
+        │
+        ▼
+Spring Boot connects to PostgreSQL
+```
+
+Stopping the application with `Ctrl+C` does not stop the database, because of `lifecycle-management=start_only`:
+
+```
+Spring Boot stops     ❌
+PostgreSQL keeps running   ✅
+```
+
 ## Running
 
 ### `./mvnw` vs `mvn` vs `./mvn`
