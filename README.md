@@ -79,6 +79,27 @@ spring.aot.repositories.enabled=false
 
 ## Running
 
+### `./mvnw` vs `mvn` vs `./mvn`
+
+- **`./mvnw`** — runs the **Maven wrapper** checked into this project (`mvnw`/`mvnw.cmd` + `.mvn/wrapper/`), which downloads and uses the exact Maven version configured for this project, regardless of what's installed on your machine.
+- **`mvn`** — runs whatever Maven is installed globally on your machine (e.g. via Homebrew), found on your `PATH`.
+- **`./mvn`** — looks for an executable file literally named `mvn` **in the current directory**. This project has no such file (only `mvnw`), so it fails.
+
+```bash
+$ ./mvnw spring-boot:run
+# uses this project's wrapped Maven version to run the app
+```
+
+```bash
+$ mvn spring-boot:run
+# uses the machine's globally installed Maven to run the app
+```
+
+```
+$ ./mvn spring-boot:run
+zsh: no such file or directory: ./mvn
+```
+
 1. Start the database:
    ```bash
    docker compose up -d
